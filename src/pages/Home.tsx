@@ -1,8 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, Heart } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
+import { formatDistanceToNow } from "date-fns";
+import { MessageSquare, Heart } from "lucide-react";
+
+// Initialize the JS client
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const Supabase = createClient(supabaseUrl, supabaseKey);
+
 
 interface Post {
   id: string;
@@ -16,24 +25,45 @@ interface Post {
 const Home = () => {
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [newPost, setNewPost] = useState('');
+  const [newPost, setNewPost] = useState("");
   const [loading, setLoading] = useState(true);
+  const [updateUi, setUpdateUi] = useState(false);  
+
+  // Create a function to handle inserts
+const handleInserts = (payload) => {
+  console.log("Change received!", payload);
+  setUpdateUi(!updateUi);
+};
+
 
   useEffect(() => {
-    fetchPosts();
+    // Listen to inserts
+    const channel = Supabase.channel("posts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        handleInserts
+      )
+      .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel); // Cleanup on unmount
+      };
   }, []);
+
+  useEffect(()=>{fetchPosts();}, [updateUi]);
 
   const fetchPosts = async () => {
     try {
       const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("posts")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      console.error("Error fetching posts:", error);
     } finally {
       setLoading(false);
     }
@@ -44,7 +74,7 @@ const Home = () => {
     if (!user || !newPost.trim()) return;
 
     try {
-      const { error } = await supabase.from('posts').insert([
+      const { error } = await supabase.from("posts").insert([
         {
           content: newPost,
           user_id: user.id,
@@ -53,10 +83,10 @@ const Home = () => {
       ]);
 
       if (error) throw error;
-      setNewPost('');
+      setNewPost("");
       fetchPosts();
     } catch (error) {
-      console.error('Error creating post:', error);
+      console.error("Error creating post:", error);
     }
   };
 
@@ -94,7 +124,9 @@ const Home = () => {
               <div className="ml-3">
                 <p className="font-medium">{post.user_email}</p>
                 <p className="text-sm text-gray-500">
-                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(post.created_at), {
+                    addSuffix: true,
+                  })}
                 </p>
               </div>
             </div>

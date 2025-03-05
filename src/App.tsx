@@ -5,7 +5,9 @@ import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import { AuthProvider } from './contexts/AuthContext';
 
+
 function App() {
+ 
   return (
     <AuthProvider>
       <Router>

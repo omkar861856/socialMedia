@@ -30,28 +30,26 @@ const Home = () => {
   const [updateUi, setUpdateUi] = useState(false);  
 
   // Create a function to handle inserts
-const handleInserts = (payload) => {
-  console.log("Change received!", payload);
-  setUpdateUi(!updateUi);
-};
-
 
   useEffect(() => {
+    fetchPosts()
     // Listen to inserts
     const channel = Supabase.channel("posts")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "posts" },
-        handleInserts
+        (payload) => {
+          console.log("Change received!", payload);
+          setUpdateUi(!updateUi);
+        }
       )
       .subscribe();
 
       return () => {
         supabase.removeChannel(channel); // Cleanup on unmount
       };
-  }, []);
+  }, [updateUi]);
 
-  useEffect(()=>{fetchPosts();}, [updateUi]);
 
   const fetchPosts = async () => {
     try {

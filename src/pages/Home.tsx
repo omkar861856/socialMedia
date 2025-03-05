@@ -27,7 +27,7 @@ const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState("");
   const [loading, setLoading] = useState(true);
-  const [updateUi, setUpdateUi] = useState(false);  
+  const [supabaseEvent, setSupabaseEvent] = useState({})
 
   // Create a function to handle inserts
 
@@ -40,7 +40,7 @@ const Home = () => {
         { event: "*", schema: "public", table: "posts" },
         (payload) => {
           console.log("Change received!", payload);
-          setUpdateUi(!updateUi);
+          setSupabaseEvent(payload)
         }
       )
       .subscribe();
@@ -48,7 +48,7 @@ const Home = () => {
       return () => {
         supabase.removeChannel(channel); // Cleanup on unmount
       };
-  }, [updateUi]);
+  }, [supabaseEvent]);
 
 
   const fetchPosts = async () => {
